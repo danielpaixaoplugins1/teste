@@ -24,7 +24,7 @@ require_once plugin_dir_path(__FILE__) . 'includes/image-optimizer.php';
 require_once plugin_dir_path(__FILE__) . 'includes/gif-banner-handler.php';
 require_once plugin_dir_path(__FILE__) . 'includes/media-organizer.php';
 require_once plugin_dir_path(__FILE__) . 'includes/shortcode-handler.php';
-require_once plugin_dir_path(__FILE__) . 'admin/admin-page.php';
+require_once plugin_dir_path(__FILE__) . 'includes/admin-page.php'; // Alterado aqui
 
 // Registrar as configurações do plugin (se necessário)
 function wpcm_register_settings() {
@@ -39,7 +39,7 @@ function wpcm_add_options_page() {
         __('WPCM Mídia', 'wpcm-media-manager'),
         'manage_options',
         'wpcm-media-manager',
-        'wpcm_settings_page'
+        'wpcm_admin_page'
     );
 }
 add_action('admin_menu', 'wpcm_add_options_page');
