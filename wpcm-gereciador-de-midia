@@ -1,0 +1,45 @@
+<?php
+/**
+ * Plugin Name: WPCM Gerenciador de Mídia
+ * Description: Um plugin para renomear, converter e organizar mídias (imagens, vídeos e áudios) no WordPress.
+ * Version: 1.0.0
+ * Author: Seu Nome
+ * License: GPL v2 or later
+ * Text Domain: wpcm-media-manager
+ */
+
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly
+}
+
+// Carrega a biblioteca de tradução do plugin
+function wpcm_load_textdomain() {
+    load_plugin_textdomain('wpcm-media-manager', false, basename(dirname(__FILE__)) . '/languages');
+}
+add_action('plugins_loaded', 'wpcm_load_textdomain');
+
+// Incluir arquivos de funções auxiliares e módulos do plugin
+require_once plugin_dir_path(__FILE__) . 'includes/functions.php';
+require_once plugin_dir_path(__FILE__) . 'includes/image-optimizer.php';
+require_once plugin_dir_path(__FILE__) . 'includes/gif-banner-handler.php';
+require_once plugin_dir_path(__FILE__) . 'includes/media-organizer.php';
+require_once plugin_dir_path(__FILE__) . 'includes/shortcode-handler.php';
+require_once plugin_dir_path(__FILE__) . 'admin/admin-page.php';
+
+// Registrar as configurações do plugin (se necessário)
+function wpcm_register_settings() {
+    // Registra configurações aqui
+}
+add_action('admin_init', 'wpcm_register_settings');
+
+// Adiciona a página de opções do plugin ao menu de administração
+function wpcm_add_options_page() {
+    add_options_page(
+        __('WPCM Gerenciador de Mídia', 'wpcm-media-manager'),
+        __('WPCM Mídia', 'wpcm-media-manager'),
+        'manage_options',
+        'wpcm-media-manager',
+        'wpcm_settings_page'
+    );
+}
+add_action('admin_menu', 'wpcm_add_options_page');
