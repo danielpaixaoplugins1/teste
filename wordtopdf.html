@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Conversor de PDF para Texto</title>
+  <style>
+    #progressBarContainer {
+      width: 100%;
+      border: 1px solid #000;
+    }
+    #progressBar {
+      width: 0%;
+      height: 20px;
+      background-color: green;
+      transition: width 0.5s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <h1>Converter PDF para Texto</h1>
+  <input type="file" id="pdfInput" accept=".pdf">
+  <button id="convertButton">Converter</button>
+  <div id="progressBarContainer">
+    <div id="progressBar"></div>
+  </div>
+  <div id="output"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <script src="https://unpkg.com/tesseract.js@5.0.0/dist/tesseract.min.js"></script>
+
+  <script>
+    const pdfInput = document.getElementById('pdfInput');
+    const convertButton = document.getElementById('convertButton');
+    const progressBar = document.getElementById('progressBar');
+    const outputDiv = document.getElementById('output');
+
+    let pdf = null;
+
+    pdfInput.addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const loadingTask = pdfjsLib.getDocument({ data: e.target.result });
+          loadingTask.promise.then(pdfDoc => {
+            pdf = pdfDoc;
+            console.log('PDF carregado com sucesso');
+          }).catch(error => {
+            console.error('Erro ao carregar o PDF:', error);
+          });
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    });
+
+    convertButton.addEventListener('click', async () => {
+      if (pdf) {
+        outputDiv.innerHTML = '';
+        progressBar.style.width = '0%';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          await processarPagina(i);
+          const progress = Math.round((i / pdf.numPages) * 100);
+          progressBar.style.width = `${progress}%`;
+          console.log(`Progresso: ${progress}%`);
+        }
+      } else {
+        alert("Selecione um arquivo PDF primeiro.");
+      }
+    });
+
+    async function processarPagina(pageNumber) {
+      const page = await pdf.getPage(pageNumber);
+      const canvas = document.createElement('canvas');
+      const viewport = page.getViewport({ scale: 1.5 });
+      const context = canvas.getContext('2d');
+
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
+
+      await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+      // Especifique o idioma 'por' para melhorar a precisão do reconhecimento em português do Brasil
+      const { data } = await Tesseract.recognize(canvas, 'por', {
+        logger: m => console.log(m)
+      });
+      outputDiv.innerHTML += `<p>${data.text}</p>`;
+    }
+  </script>
+</body>
+</html>
