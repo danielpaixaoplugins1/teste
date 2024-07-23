@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transcrever Texto de Imagem ou PDF</title>
+<!-- CDN para as bibliotecas necessárias -->
+<script src="fabric.min.js"></script>
+<script src="tesseract.min.js"></script>
+<script src="pdf.min.js"></script>
+<style>
+  #canvas-container {
+    width: 500px;
+    height: 500px;
+    border: 1px solid #ccc;
+  }
+
+  #file-input, #transcrever-btn {
+    margin-top: 10px;
+  }
+
+  #texto-transcrito {
+    margin-top: 10px;
+    white-space: pre-wrap; /* Mantém as quebras de linha do texto transcrito */
+  }
+</style>
+</head>
+<body>
+<input type="file" id="file-input" accept="image/*,application/pdf">
+<div id="canvas-container"><canvas id="canvas"></canvas></div>
+<br>
+<button id="transcrever-btn">Transcrever Texto</button>
+<div id="texto-transcrito"></div>
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    var canvasElement = document.getElementById('canvas');
+    var canvas = new fabric.Canvas(canvasElement); // Inicialização do canvas usando Fabric.js
+    var input = document.getElementById('file-input');
+    var transcreverBtn = document.getElementById('transcrever-btn');
+    var textoTranscritoDiv = document.getElementById('texto-transcrito');
+
+    const MAX_WIDTH = 500;
+    const MAX_HEIGHT = 500;
+
+    function displayImage(imageSrc) {
+      var imagem = new Image();
+      imagem.onload = function() {
+        var scale = Math.min(MAX_WIDTH / imagem.width, MAX_HEIGHT / imagem.height, 1);
+        var width = imagem.width * scale;
+        var height = imagem.height * scale;
+
+        var imgInstance = new fabric.Image(imagem, {
+          scaleX: scale,
+          scaleY: scale
+        });
+        canvas.clear();
+        canvas.setWidth(width);
+        canvas.setHeight(height);
+        canvas.add(imgInstance);
+      };
+      imagem.src = imageSrc;
+    }
+
+    function readImage(file) {
+      var reader = new FileReader();
+
+      reader.onload = function(e) {
+        displayImage(e.target.result);
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    function readPDF(file) {
+      var reader = new FileReader();
+
+      reader.onload = function(e) {
+        var loadingTask = pdfjsLib.getDocument({ data: e.target.result });
+        loadingTask.promise.then(function(pdf) {
+          pdf.getPage(1).then(function(page) {
+            var viewport = page.getViewport({ scale: 2 }); // Aumentei a escala para melhorar a resolução
+            var context = canvasElement.getContext('2d');
+            canvasElement.width = viewport.width;
+            canvasElement.height = viewport.height;
+
+            var renderContext = {
+              canvasContext: context,
+              viewport: viewport
+            };
+            page.render(renderContext).promise.then(function() {
+              var imageData = canvasElement.toDataURL();
+              displayImage(imageData); // Exibe a miniatura no canvas
+            });
+          });
+        });
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+
+    input.addEventListener('change', function() {
+      if (input.files && input.files[0]) {
+        var file = input.files[0];
+        var fileType = file.type;
+
+        if (fileType === 'application/pdf') {
+          readPDF(file);
+        } else if (fileType.startsWith('image/')) {
+          readImage(file);
+        } else {
+          alert('Por favor, selecione uma imagem ou um documento PDF.');
+        }
+      } else {
+        alert('Por favor, selecione um arquivo.');
+      }
+    });
+
+    transcreverBtn.addEventListener('click', function() {
+      if (!input.files || !input.files[0]) {
+        alert('Por favor, selecione um arquivo para transcrever.');
+        return;
+      }
+
+      transcreverBtn.disabled = true;
+      transcreverBtn.innerText = 'Transcrevendo...';
+
+      // Convertemos o conteúdo do canvas para uma imagem base64 para o Tesseract
+      var canvasImage = canvasElement.toDataURL('image/png');
+
+      Tesseract.recognize(
+        canvasImage,
+        'por', // Define o idioma para português
+        {
+          logger: m => console.log(m) // Log de progresso opcional
+        }
+      ).then(({ data: { text } }) => {
+        textoTranscritoDiv.innerText = text; // Exibe o texto transcrito
+        transcreverBtn.disabled = false;
+        transcreverBtn.innerText = 'Transcrever Texto';
+      }).catch(err => {
+        console.error(err);
+        alert('Ocorreu um erro ao transcrever o texto.');
+        transcreverBtn.disabled = false;
+        transcreverBtn.innerText = 'Transcrever Texto';
+      });
+    });
+  });
+</script>
+</body>
+</html>
